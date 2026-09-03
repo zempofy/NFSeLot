@@ -1,22 +1,21 @@
 # NFS-e em lote
 
 Site interno pra baixar (em lote) as notas fiscais de serviço eletrônicas de
-vários clientes, direto pela API Nacional (ADN) do governo.
+clientes do escritório, direto pela API Nacional (ADN) do governo.
 
 ## O que já está pronto
 
 - Login simples por senha compartilhada (protege o site inteiro).
-- Cadastro de clientes: só nome e CNPJ. **O certificado digital (.pfx) não
-  é cadastrado nem guardado em lugar nenhum** — a pessoa anexa o arquivo e
-  digita a senha dele na hora de cada busca, na própria tela do cliente. O
-  servidor usa esse certificado só naquela requisição (mTLS contra o
-  governo) e ele deixa de existir assim que a resposta é enviada — nunca é
-  gravado em disco ou banco.
-- Na tela de cada cliente: escolher **data inicial**, **data final** e o
-  **tipo** (notas emitidas ou notas tomadas — uma opção por vez), depois
-  clicar em **"Baixar XML"** ou **"Baixar PDF"**. O site autentica no
-  governo com mTLS, filtra as notas do período/tipo pedidos, e devolve o
-  arquivo.
+- **Sem banco de dados e sem cadastro de nada.** Não guardamos nome, CNPJ,
+  certificado nem qualquer outro dado de cliente — o site não guarda
+  estado nenhum entre uma visita e outra. Tudo é preenchido na hora: CNPJ,
+  período, tipo, certificado e senha, numa única tela.
+- Tela única: escolher **CNPJ**, **data inicial**, **data final** e o
+  **tipo** (notas emitidas ou notas tomadas — uma opção por vez), anexar o
+  certificado (`.pfx`) e a senha dele, e clicar em **"Baixar XML"** ou
+  **"Baixar PDF"**. O site autentica no governo com mTLS usando esse
+  certificado só naquela requisição — ele nunca é gravado em disco ou
+  banco, é descartado assim que a resposta é enviada.
 - Depois de qualquer um dos dois downloads, aparece o botão **"Baixar
   planilha de retenções"** — a planilha (.xlsx) já vem pronta na mesma
   resposta da busca (não precisa anexar o certificado de novo). Ela lista
@@ -60,19 +59,11 @@ detalhado no topo de `lib/nfse.js`.
 4. **Nomes das tags no XML (`CAMPOS_XML` em `lib/nfse.js`).** É daí que
    vem os dados da planilha de retenções (valor do serviço, ISS, PIS,
    COFINS, CSLL, IR) e a classificação de "emitida" vs "tomada" (comparando
-   o CNPJ do cliente com o `prestador`/`tomador` do XML). Os nomes usados
+   o CNPJ digitado com o `prestador`/`tomador` do XML). Os nomes usados
    são o layout mais comum da NFS-e Nacional, mas não foram testados contra
    um XML de verdade — depois que a busca funcionar, abram um XML baixado e
    confirmem se os nomes batem. Se algo vier em branco na planilha, é ali
    que se ajusta.
-
-5. **Banco de dados.** Por padrão isso guarda os clientes num arquivo
-   `data/clientes.json`. Ótimo pra testar rodando no seu computador. **Não
-   funciona direito hospedado no Vercel** (o disco lá é temporário — os
-   clientes cadastrados podem simplesmente sumir). Antes de colocar em
-   produção, troquem `lib/db.js` por um banco hospedado (Vercel Postgres,
-   Neon, Supabase e Turso têm plano gratuito de sobra pra esse volume). É a
-   única peça que precisa trocar.
 
 ## Rodando localmente
 
@@ -83,9 +74,9 @@ cp .env.example .env
 npm run dev
 ```
 
-Abra `http://localhost:3000`. Comece cadastrando um cliente com um
-certificado de **homologação** (NFSE_AMBIENTE=homologacao no `.env`) antes
-de usar em produção de verdade.
+Abra `http://localhost:3000`. Testem primeiro com um certificado de
+**homologação** (`NFSE_AMBIENTE=homologacao` no `.env`, que já é o padrão)
+antes de usar em produção de verdade.
 
 ## Como conseguir o certificado de cada cliente
 
@@ -99,26 +90,27 @@ de usar em produção de verdade.
   quem já cuida disso hoje, ex: pasta compartilhada com controle de
   acesso, cofre de senhas etc.) — quem for baixar as notas anexa o
   arquivo certo na hora, igual anexar um arquivo em qualquer formulário.
-  O site nunca guarda essa cópia.
+  O site nunca guarda essa cópia, nem sabe que ela existiu depois que a
+  resposta é enviada.
 
 ## Deploy no Vercel
 
-1. Troquem `lib/db.js` por um banco hospedado (ver item 3 acima).
-2. Subam o projeto pro GitHub e conectem no Vercel.
-3. Configurem as variáveis de ambiente no painel do Vercel: `SITE_PASSWORD`,
+Como não tem banco de dados nem arquivo pra persistir, o deploy é direto:
+
+1. Subam o projeto pro GitHub e conectem no Vercel.
+2. Configurem as variáveis de ambiente no painel do Vercel: `SITE_PASSWORD`,
    `NFSE_AMBIENTE` (comecem com `homologacao`).
-4. Testem tudo em homologação antes de trocar `NFSE_AMBIENTE` pra `producao`.
+3. Testem tudo em homologação antes de trocar `NFSE_AMBIENTE` pra `producao`.
 
 ## Estrutura
 
 ```
 app/
   login/            tela de login
-  clientes/novo/    cadastro de cliente (nome + CNPJ, sem certificado)
-  api/login/        verifica a senha
-  api/clientes/     lista/cadastra clientes
-  api/clientes/[id]/buscar/   recebe certificado+período+tipo, busca e devolve zip + planilha
+  page.jsx           tela única (renderiza busca-notas.jsx)
+  busca-notas.jsx     formulário: CNPJ, período, tipo, certificado, botões
+  api/login/          verifica a senha
+  api/buscar/         recebe certificado+CNPJ+período+tipo, busca e devolve zip + planilha
 lib/
-  db.js       onde os clientes ficam salvos (trocar por banco real, ver acima)
   nfse.js     conversa com a API do governo (mTLS, período, classificação, zip, planilha)
 ```

@@ -138,6 +138,7 @@ h1, h2, h3 {
 
 .campo input[type="text"],
 .campo input[type="password"],
+.campo input[type="date"],
 .campo input[type="file"] {
   width: 100%;
   padding: 10px 12px;

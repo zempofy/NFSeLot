@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
-import { getCliente } from "@/lib/db";
 import { buscarNotas } from "@/lib/nfse";
 
-// Recebe, numa única requisição via FormData: o certificado (.pfx) e a
-// senha (usados só nesta busca, nunca gravados), a data inicial/final, o
-// tipo (emitidas/tomadas) e o formato pedido (xml/pdf). Devolve, numa
-// resposta só, o zip pedido E a planilha de retenções já pronta — assim a
-// pessoa não precisa anexar o certificado de novo só pra baixar a
-// planilha depois de já ter buscado as notas.
-export async function POST(request, { params }) {
-  const cliente = getCliente(params.id);
-  if (!cliente) {
-    return NextResponse.json({ erro: "Cliente não encontrado." }, { status: 404 });
-  }
-
+// Sem banco de dados, sem cadastro de cliente: tudo que a busca precisa
+// (CNPJ, período, tipo, certificado e senha) vem direto do formulário,
+// numa requisição só. O certificado é usado só nesta chamada e descartado
+// junto com o resto assim que a resposta é enviada.
+export async function POST(request) {
   const formData = await request.formData();
+  const cnpj = formData.get("cnpj");
   const senha = formData.get("senhaCertificado");
   const arquivo = formData.get("certificado");
   const dataInicial = formData.get("dataInicial");
@@ -22,9 +15,9 @@ export async function POST(request, { params }) {
   const tipo = formData.get("tipo"); // "emitidas" | "tomadas"
   const formato = formData.get("formato"); // "xml" | "pdf"
 
-  if (!senha || !arquivo || !dataInicial || !dataFinal || !tipo || !formato) {
+  if (!cnpj || !senha || !arquivo || !dataInicial || !dataFinal || !tipo || !formato) {
     return NextResponse.json(
-      { erro: "Preencha data inicial, data final, o tipo de nota, e anexe o certificado com a senha." },
+      { erro: "Preencha o CNPJ, o período, o tipo de nota, e anexe o certificado com a senha." },
       { status: 400 }
     );
   }
@@ -35,7 +28,7 @@ export async function POST(request, { params }) {
     const { zipBuffer, planilhaBuffer, totalNotas } = await buscarNotas({
       pfxBuffer,
       senha,
-      cnpjCliente: cliente.cnpj,
+      cnpjCliente: cnpj,
       dataInicial,
       dataFinal,
       tipo,
@@ -49,6 +42,7 @@ export async function POST(request, { params }) {
       );
     }
 
+    const cnpjLimpo = cnpj.replace(/\D/g, "") || cnpj;
     const sufixo = `${tipo}-${formato}-${dataInicial}-a-${dataFinal}`;
 
     return NextResponse.json({
@@ -57,8 +51,8 @@ export async function POST(request, { params }) {
       formato,
       zipBase64: zipBuffer.toString("base64"),
       planilhaBase64: planilhaBuffer.toString("base64"),
-      nomeArquivoZip: `${cliente.cnpj}-${sufixo}.zip`,
-      nomeArquivoPlanilha: `${cliente.cnpj}-retencoes-${tipo}-${dataInicial}-a-${dataFinal}.xlsx`,
+      nomeArquivoZip: `${cnpjLimpo}-${sufixo}.zip`,
+      nomeArquivoPlanilha: `${cnpjLimpo}-retencoes-${tipo}-${dataInicial}-a-${dataFinal}.xlsx`,
     });
   } catch (err) {
     // Erros comuns aqui: senha do .pfx errada, certificado vencido, ou
