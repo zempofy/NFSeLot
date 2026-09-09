@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600&family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 
 :root {
   --papel: #eef1ee;
@@ -20,14 +20,15 @@ body {
   margin: 0;
   background: var(--papel);
   color: var(--tinta);
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.5;
 }
 
 h1, h2, h3 {
-  font-family: "Source Serif 4", Georgia, serif;
-  font-weight: 600;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--tinta);
   margin: 0;
 }
@@ -173,6 +174,97 @@ h1, h2, h3 {
   border-radius: 4px;
   font-size: 14px;
   margin-bottom: 20px;
+}
+
+/* Caixinha que agrupa campos relacionados (ex: Período, Certificado) */
+.grupo {
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--branco);
+}
+
+.grupo-titulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-suave);
+  margin-bottom: 12px;
+}
+
+.grupo-linha {
+  display: flex;
+  gap: 12px;
+}
+
+.grupo-linha > div {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.grupo .campo {
+  margin-bottom: 0;
+}
+
+/* Botões conectados em par — usado tanto pra escolher uma opção (toggle,
+   ex: Emitidas/Tomadas) quanto pra duas ações lado a lado (ex: XML/PDF) */
+.segmentado {
+  display: flex;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.segmentado.segmentado-largo {
+  width: 100%;
+}
+
+.segmentado button {
+  flex: 1;
+  padding: 11px 20px;
+  border: none;
+  background: var(--branco);
+  color: var(--tinta-suave);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.segmentado button + button {
+  border-left: 1px solid var(--borda);
+}
+
+.segmentado button.ativo {
+  background: var(--verde);
+  color: var(--branco);
+}
+
+.segmentado button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Variante onde os dois lados são ações (não uma escolha entre estados) */
+.segmentado-acoes button {
+  background: var(--verde);
+  color: var(--branco);
+  font-weight: 600;
+}
+
+.segmentado-acoes button:hover:not(:disabled) {
+  background: var(--verde-escuro);
+}
+
+.segmentado-acoes button + button {
+  border-left: 1px solid rgba(251, 252, 251, 0.3);
+}
+
+.segmentado-acoes button:disabled {
+  background: var(--borda);
+  color: var(--tinta-suave);
 }
 
 .vazio {

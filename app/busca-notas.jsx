@@ -22,6 +22,7 @@ function baixarBase64(base64, nomeArquivo, mime) {
 const MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 export default function BuscaNotas() {
+  const [tipo, setTipo] = useState("emitidas");
   const [carregando, setCarregando] = useState(false);
   const [mensagem, setMensagem] = useState(null); // { texto, tipo }
   const [resultado, setResultado] = useState(null); // { planilhaBase64, nomeArquivoPlanilha, totalNotas }
@@ -31,6 +32,7 @@ export default function BuscaNotas() {
     const formEl = formRef.current;
     if (!formEl) return;
     const formData = new FormData(formEl);
+    formData.set("tipo", tipo);
     formData.set("formato", formato);
 
     setCarregando(true);
@@ -44,17 +46,21 @@ export default function BuscaNotas() {
     } catch {
       setCarregando(false);
       setMensagem({ texto: "Falha de conexão. Tente de novo.", tipo: "erro" });
+      alert("Falha de conexão. Tente de novo.");
       return;
     }
 
     setCarregando(false);
 
     if (!res.ok || data.erro) {
-      setMensagem({ texto: data.erro || "Algo deu errado.", tipo: "erro" });
+      const texto = data.erro || "Algo deu errado.";
+      setMensagem({ texto, tipo: "erro" });
+      alert(texto);
       return;
     }
     if (data.aviso) {
       setMensagem({ texto: data.aviso, tipo: "aviso" });
+      alert(data.aviso);
       return;
     }
 
@@ -82,48 +88,69 @@ export default function BuscaNotas() {
       <form
         ref={formRef}
         onSubmit={(e) => e.preventDefault()}
-        style={{ display: "flex", flexDirection: "column", maxWidth: 420 }}
+        style={{ display: "flex", flexDirection: "column", maxWidth: 460 }}
       >
         <div className="campo">
           <label htmlFor="cnpj">CNPJ do cliente</label>
           <input id="cnpj" name="cnpj" type="text" placeholder="00.000.000/0000-00" required disabled={carregando} />
         </div>
 
-        <div style={{ display: "flex", gap: 12 }}>
-          <div className="campo" style={{ flex: 1 }}>
-            <label htmlFor="dataInicial">De</label>
-            <input id="dataInicial" name="dataInicial" type="date" required disabled={carregando} />
+        <div className="grupo">
+          <div className="grupo-titulo">Período</div>
+          <div className="grupo-linha">
+            <div className="campo">
+              <label htmlFor="dataInicial">De</label>
+              <input id="dataInicial" name="dataInicial" type="date" required disabled={carregando} />
+            </div>
+            <div className="campo">
+              <label htmlFor="dataFinal">Até</label>
+              <input id="dataFinal" name="dataFinal" type="date" required disabled={carregando} />
+            </div>
           </div>
-          <div className="campo" style={{ flex: 1 }}>
-            <label htmlFor="dataFinal">Até</label>
-            <input id="dataFinal" name="dataFinal" type="date" required disabled={carregando} />
-          </div>
-        </div>
-
-        <div className="campo" style={{ fontSize: 14, display: "flex", gap: 16 }}>
-          <label>
-            <input type="radio" name="tipo" value="emitidas" defaultChecked disabled={carregando} /> Notas emitidas
-          </label>
-          <label>
-            <input type="radio" name="tipo" value="tomadas" disabled={carregando} /> Notas tomadas
-          </label>
         </div>
 
         <div className="campo">
-          <label htmlFor="certificado">Certificado digital (.pfx)</label>
-          <input id="certificado" name="certificado" type="file" accept=".pfx,.p12" required disabled={carregando} />
+          <div className="segmentado" role="group" aria-label="Tipo de nota">
+            <button
+              type="button"
+              className={tipo === "emitidas" ? "ativo" : ""}
+              aria-pressed={tipo === "emitidas"}
+              disabled={carregando}
+              onClick={() => setTipo("emitidas")}
+            >
+              Notas emitidas
+            </button>
+            <button
+              type="button"
+              className={tipo === "tomadas" ? "ativo" : ""}
+              aria-pressed={tipo === "tomadas"}
+              disabled={carregando}
+              onClick={() => setTipo("tomadas")}
+            >
+              Notas tomadas
+            </button>
+          </div>
         </div>
 
-        <div className="campo">
-          <label htmlFor="senhaCertificado">Senha do certificado</label>
-          <input id="senhaCertificado" name="senhaCertificado" type="password" required disabled={carregando} />
+        <div className="grupo">
+          <div className="grupo-titulo">Certificado</div>
+          <div className="grupo-linha">
+            <div className="campo">
+              <label htmlFor="certificado">Arquivo (.pfx)</label>
+              <input id="certificado" name="certificado" type="file" accept=".pfx,.p12" required disabled={carregando} />
+            </div>
+            <div className="campo">
+              <label htmlFor="senhaCertificado">Senha</label>
+              <input id="senhaCertificado" name="senhaCertificado" type="password" required disabled={carregando} />
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" className="botao" disabled={carregando} onClick={() => buscar("xml")}>
+        <div className="segmentado segmentado-largo segmentado-acoes">
+          <button type="button" disabled={carregando} onClick={() => buscar("xml")}>
             {carregando ? "Buscando…" : "Baixar XML"}
           </button>
-          <button type="button" className="botao" disabled={carregando} onClick={() => buscar("pdf")}>
+          <button type="button" disabled={carregando} onClick={() => buscar("pdf")}>
             {carregando ? "Buscando…" : "Baixar PDF"}
           </button>
         </div>

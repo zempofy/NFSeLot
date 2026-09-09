@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: nfse-lote
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: SITE_PASSWORD
+        sync: false
+      - key: NFSE_AMBIENTE
+        value: homologacao
