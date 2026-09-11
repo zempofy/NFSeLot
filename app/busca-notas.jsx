@@ -28,6 +28,11 @@ export default function BuscaNotas() {
   const [resultado, setResultado] = useState(null); // { planilhaBase64, nomeArquivoPlanilha, totalNotas }
   const formRef = useRef(null);
 
+  // "Baixar PDF" foi tirado da tela: a API do governo que gerava o DANFSe
+  // foi desativada em 01/07/2026. Pra reativar, precisa montar o PDF
+  // localmente a partir do XML, seguindo o layout da Nota Técnica nº 008
+  // (SE/CGNFS-e) — ver aviso 🛑 em lib/nfse.js. formato "xml" continua
+  // sendo o único suportado por enquanto.
   async function buscar(formato) {
     const formEl = formRef.current;
     if (!formEl) return;
@@ -146,14 +151,15 @@ export default function BuscaNotas() {
           </div>
         </div>
 
-        <div className="segmentado segmentado-largo segmentado-acoes">
-          <button type="button" disabled={carregando} onClick={() => buscar("xml")}>
-            {carregando ? "Buscando…" : "Baixar XML"}
-          </button>
-          <button type="button" disabled={carregando} onClick={() => buscar("pdf")}>
-            {carregando ? "Buscando…" : "Baixar PDF"}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="botao"
+          style={{ width: "100%" }}
+          disabled={carregando}
+          onClick={() => buscar("xml")}
+        >
+          {carregando ? "Buscando…" : "Baixar XML"}
+        </button>
       </form>
 
       {mensagem && (
