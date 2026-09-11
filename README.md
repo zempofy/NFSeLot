@@ -35,26 +35,26 @@ detalhado no topo de `lib/nfse.js`.
 
 ## O que falta confirmar antes de usar de verdade (importante!)
 
-1. **Caminhos exatos da API.** A documentação oficial (Swagger) só abre no
-   navegador pra quem já tem um certificado digital válido, então não
-   consegui abrir e confirmar cada rota. Os caminhos usados em `lib/nfse.js`
-   (arquivo `PATHS`) foram montados com base na documentação técnica pública
-   e em guias de quem já integrou. Antes de rodar com um cliente de
-   verdade: peguem um certificado, abram
+1. ✅ **Caminhos exatos da API — confirmados em 2026-09-10.** Baixamos o
+   Swagger oficial direto de
    `https://adn.producaorestrita.nfse.gov.br/contribuintes/docs/index.html`
-   no navegador (ele vai pedir pra selecionar o certificado) e confirmem se
-   os caminhos batem com o que está em `PATHS`. Se algo mudar, é só ajustar
-   ali — o resto do código não muda.
+   com um certificado real. A API só documenta dois caminhos, os dois sob
+   `/contribuintes`: `GET /DFe/{NSU}?cnpjConsulta=...` (lote de documentos)
+   e `GET /NFSe/{ChaveAcesso}/Eventos` (eventos de uma nota, não o XML dela).
+   `lib/nfse.js` já foi ajustado pra isso. **Ainda não confirmado**: o
+   caminho do DANFSe (PDF) não aparece nesse Swagger — o que está em `PATHS`
+   é só um palpite. Se "Baixar PDF" falhar, é ali que precisa investigar.
 
-2. **Formato exato da resposta do endpoint de NSU.** O código já trata os
-   formatos mais prováveis (lista de documentos ou item único, XML já vindo
-   junto ou precisando de uma segunda chamada), mas isso também só dá pra
-   confirmar 100% testando com um certificado real em homologação.
+2. ✅ **Formato da resposta do endpoint de NSU — confirmado.** Não é uma
+   lista solta: é um objeto `{ StatusProcessamento, LoteDFe: [...], Erros:
+   [...] }`, e os campos de cada item vêm em PascalCase (`NSU`,
+   `ChaveAcesso`, `ArquivoXml`, `TipoDocumento`). `lib/nfse.js` já trata
+   isso corretamente.
 
 3. **Busca por data.** Hoje é feita varrendo o NSU e filtrando pela data de
    emissão de cada nota (ver aviso em `lib/nfse.js`) — pode ser lento com
-   muito histórico. Vale checar se existe uma rota oficial de busca por
-   período já pronta.
+   muito histórico. O Swagger oficial não mostra nenhuma rota de busca por
+   período pronta, então por enquanto é assim mesmo.
 
 4. **Nomes das tags no XML (`CAMPOS_XML` em `lib/nfse.js`).** É daí que
    vem os dados da planilha de retenções (valor do serviço, ISS, PIS,
