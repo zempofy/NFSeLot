@@ -1,6 +1,6 @@
-# NFS-e em lote
+# iApura
 
-Site interno pra baixar (em lote) as notas fiscais de serviço eletrônicas de
+Site pra baixar (em lote) as notas fiscais de serviço eletrônicas de
 clientes do escritório, direto pela API Nacional (ADN) do governo.
 
 ## O que já está pronto

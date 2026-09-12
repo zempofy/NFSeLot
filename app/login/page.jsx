@@ -31,7 +31,7 @@ export default function Login() {
   return (
     <div className="tela">
       <form className="form-login" onSubmit={entrar}>
-        <h1>NFS-e em lote</h1>
+        <h1>iApura</h1>
         {erro && <div className="mensagem-erro">{erro}</div>}
         <div className="campo">
           <label htmlFor="senha">Senha de acesso</label>

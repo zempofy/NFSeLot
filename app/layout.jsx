@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "NFS-e em lote",
+  title: "iApura",
   description: "Download em lote de notas fiscais de serviço pela API Nacional",
 };
 

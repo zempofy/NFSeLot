@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: nfse-lote
+    name: iapura
     runtime: node
     plan: free
     buildCommand: npm install && npm run build
