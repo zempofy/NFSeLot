@@ -267,6 +267,34 @@ h1, h2, h3 {
   color: var(--tinta-suave);
 }
 
+/* Barra indeterminada — não dá pra saber o total de notas antes de
+   terminar a varredura por NSU, então em vez de fingir uma % ela mostra
+   só que "ainda está rodando"; o texto embaixo (ver textoProgresso em
+   busca-notas.jsx) que carrega a informação real (página, nº de notas). */
+.barra-progresso {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--papel-alt);
+  overflow: hidden;
+}
+
+.barra-progresso-preenchimento {
+  height: 100%;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--verde);
+  animation: barra-progresso-deslizar 1.1s ease-in-out infinite;
+}
+
+@keyframes barra-progresso-deslizar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 .vazio {
   text-align: center;
   padding: 48px 0;

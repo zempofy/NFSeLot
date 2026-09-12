@@ -21,9 +21,25 @@ function baixarBase64(base64, nomeArquivo, mime) {
 
 const MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
+// Descreve o evento de progresso (ver onProgresso em lib/nfse.js) numa
+// frase curta pra mostrar embaixo da barra.
+function textoProgresso(p) {
+  if (!p) return "Buscando…";
+  if (p.etapa === "baixando_pdf") {
+    return `Baixando PDF ${p.notaAtual} de ${p.notasEncontradas}…`;
+  }
+  if (p.etapa === "montando_arquivos") {
+    return `Montando arquivos (${p.notasEncontradas} nota(s) encontrada(s))…`;
+  }
+  return p.notasEncontradas > 0
+    ? `Buscando… ${p.notasEncontradas} nota(s) encontrada(s) até agora (página ${p.pagina})`
+    : `Buscando… nenhuma nota encontrada ainda (página ${p.pagina})`;
+}
+
 export default function BuscaNotas() {
   const [tipo, setTipo] = useState("emitidas");
   const [carregando, setCarregando] = useState(false);
+  const [progresso, setProgresso] = useState(null); // { etapa, pagina, notasEncontradas, notaAtual }
   const [mensagem, setMensagem] = useState(null); // { texto, tipo }
   const [resultado, setResultado] = useState(null); // { planilhaBase64, nomeArquivoPlanilha, totalNotas }
   const formRef = useRef(null);
@@ -33,6 +49,11 @@ export default function BuscaNotas() {
   // localmente a partir do XML, seguindo o layout da Nota Técnica nº 008
   // (SE/CGNFS-e) — ver aviso 🛑 em lib/nfse.js. formato "xml" continua
   // sendo o único suportado por enquanto.
+  //
+  // A resposta da API vem em NDJSON (uma linha JSON por evento), não um
+  // JSON único — assim dá pra mostrar o progresso da busca (página do NSU,
+  // quantas notas já achou) em vez de "Buscando…" parado. A última linha
+  // é sempre o evento final: "resultado", "aviso" ou "erro".
   async function buscar(formato) {
     const formEl = formRef.current;
     if (!formEl) return;
@@ -41,13 +62,36 @@ export default function BuscaNotas() {
     formData.set("formato", formato);
 
     setCarregando(true);
+    setProgresso(null);
     setMensagem(null);
     setResultado(null);
 
-    let res, data;
+    let final = null;
     try {
-      res = await fetch("/api/buscar", { method: "POST", body: formData });
-      data = await res.json();
+      const res = await fetch("/api/buscar", { method: "POST", body: formData });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let restante = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        restante += decoder.decode(value, { stream: true });
+
+        let fimDaLinha;
+        while ((fimDaLinha = restante.indexOf("\n")) >= 0) {
+          const linha = restante.slice(0, fimDaLinha).trim();
+          restante = restante.slice(fimDaLinha + 1);
+          if (!linha) continue;
+
+          const evento = JSON.parse(linha);
+          if (evento.tipo === "progresso") {
+            setProgresso(evento);
+          } else {
+            final = evento; // aviso | erro | resultado
+          }
+        }
+      }
     } catch {
       setCarregando(false);
       setMensagem({ texto: "Falha de conexão. Tente de novo.", tipo: "erro" });
@@ -56,30 +100,31 @@ export default function BuscaNotas() {
     }
 
     setCarregando(false);
+    setProgresso(null);
 
-    if (!res.ok || data.erro) {
-      const texto = data.erro || "Algo deu errado.";
+    if (!final || final.tipo === "erro") {
+      const texto = final?.erro || "Algo deu errado.";
       setMensagem({ texto, tipo: "erro" });
       alert(texto);
       return;
     }
-    if (data.aviso) {
-      setMensagem({ texto: data.aviso, tipo: "aviso" });
-      alert(data.aviso);
+    if (final.tipo === "aviso") {
+      setMensagem({ texto: final.aviso, tipo: "aviso" });
+      alert(final.aviso);
       return;
     }
 
     // Baixa automaticamente o arquivo pedido (XML ou PDF).
-    baixarBase64(data.zipBase64, data.nomeArquivoZip, "application/zip");
+    baixarBase64(final.zipBase64, final.nomeArquivoZip, "application/zip");
 
     setMensagem({
-      texto: `${data.totalNotas} nota(s) baixada(s) em ${formato.toUpperCase()}.`,
+      texto: `${final.totalNotas} nota(s) baixada(s) em ${formato.toUpperCase()}.`,
       tipo: "ok",
     });
     setResultado({
-      planilhaBase64: data.planilhaBase64,
-      nomeArquivoPlanilha: data.nomeArquivoPlanilha,
-      totalNotas: data.totalNotas,
+      planilhaBase64: final.planilhaBase64,
+      nomeArquivoPlanilha: final.nomeArquivoPlanilha,
+      totalNotas: final.totalNotas,
     });
   }
 
@@ -161,6 +206,17 @@ export default function BuscaNotas() {
           {carregando ? "Buscando…" : "Baixar XML"}
         </button>
       </form>
+
+      {carregando && (
+        <div style={{ marginTop: 16 }}>
+          <div className="barra-progresso">
+            <div className="barra-progresso-preenchimento" />
+          </div>
+          <div style={{ marginTop: 8, fontSize: 13, color: "var(--tinta-suave)" }}>
+            {textoProgresso(progresso)}
+          </div>
+        </div>
+      )}
 
       {mensagem && (
         <div
